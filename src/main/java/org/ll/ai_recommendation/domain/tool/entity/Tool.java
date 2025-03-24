@@ -1,4 +1,4 @@
-package org.ll.ai_recommendation.domain.tools.entity;
+package org.ll.ai_recommendation.domain.tool.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -13,7 +13,7 @@ import org.ll.ai_recommendation.global.baseEntity.BaseEntity;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Tools extends BaseEntity {
+public class Tool extends BaseEntity {
     @Column(name = "tool_name", unique = true)
     private String toolName;
 

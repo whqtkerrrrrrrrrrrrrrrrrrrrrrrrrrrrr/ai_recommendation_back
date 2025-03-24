@@ -1,4 +1,4 @@
-package org.ll.ai_recommendation.domain.tools.service;
+package org.ll.ai_recommendation.domain.tool.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -6,8 +6,8 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import org.ll.ai_recommendation.domain.tools.entity.Tools;
-import org.ll.ai_recommendation.domain.tools.repository.ToolsRepository;
+import org.ll.ai_recommendation.domain.tool.entity.Tool;
+import org.ll.ai_recommendation.domain.tool.repository.ToolRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,8 +18,8 @@ import java.io.IOException;
 @RequiredArgsConstructor
 @Slf4j
 @Transactional
-public class ToolsService {
-    private final ToolsRepository toolsRepository;
+public class ToolService {
+    private final ToolRepository toolsRepository;
     private static final String BASE_URL = "https://www.aixploria.com/en/categories-ai/";
 
     public void crawlAndSaveTools() {
@@ -74,7 +74,7 @@ public class ToolsService {
 
                         // 중복 체크 후 저장
                         if (!toolsRepository.existsByToolName(toolName)) {
-                            Tools tool = Tools.builder()
+                            Tool tool = Tool.builder()
                                     .toolName(toolName)
                                     .toolLink(toolUrl)
                                     .bigCategory(largeCategory)
