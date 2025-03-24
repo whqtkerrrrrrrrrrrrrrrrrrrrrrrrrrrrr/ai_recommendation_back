@@ -17,6 +17,9 @@ public class SubCategory extends BaseEntity {
     @Column(name = "sub_category_name", unique = true)
     String subCategoryName;
 
+    @Column(name="sub_category_url")
+    String subCategoryUrl;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "major_category_id")
     MajorCategory majorCategory;

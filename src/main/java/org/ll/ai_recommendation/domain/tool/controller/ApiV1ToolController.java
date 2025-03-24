@@ -11,11 +11,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @RequiredArgsConstructor
 @RequestMapping("/api/crawling")
 public class ApiV1ToolController {
-    private final ToolService toolsService;
+    private final ToolService toolService;
 
     @GetMapping("/start")
     public GlobalResponse<Void> startCrawling() {
-        toolsService.crawlAndSaveTools();
+        toolService.saveCategories();
+        toolService.saveTools();
         return GlobalResponse.success();
     }
 }

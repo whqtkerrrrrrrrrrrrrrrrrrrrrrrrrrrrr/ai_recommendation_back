@@ -17,7 +17,7 @@ public class ToolScheduler {
     @Scheduled(cron = "0 0 12 * * ?")
     public void updateCareCenter() {
         log.info("Crawling start . . .");
-        toolsService.crawlAndSaveTools();
+        //toolsService.crawlAndSaveTools();
         log.info("Crawling end . . .");
     }
 }
