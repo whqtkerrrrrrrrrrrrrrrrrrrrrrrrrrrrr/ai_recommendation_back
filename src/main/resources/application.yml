@@ -1,0 +1,11 @@
+spring:
+  output:
+    ansi:
+      enabled: ALWAYS
+  profiles:
+    active: dev
+    include: secret
+logging:
+  level:
+    root: info
+    com.ll.ai_recommendation: debug
