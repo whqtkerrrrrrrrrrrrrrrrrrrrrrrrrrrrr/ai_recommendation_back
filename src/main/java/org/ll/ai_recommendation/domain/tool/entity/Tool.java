@@ -1,8 +1,10 @@
 package org.ll.ai_recommendation.domain.tool.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 import lombok.*;
-import org.ll.ai_recommendation.domain.category.majorCategory.entity.MajorCategory;
 import org.ll.ai_recommendation.domain.category.subCategory.entity.SubCategory;
 import org.ll.ai_recommendation.global.baseEntity.BaseEntity;
 
@@ -27,8 +29,4 @@ public class Tool extends BaseEntity {
 
     @OneToMany(mappedBy = "tool")
     private List<SubCategory> subCategories;
-
-    @OneToOne(mappedBy = "tool")
-    @JoinColumn(name = "major_category_id")
-    private MajorCategory majorCategory;
 }
