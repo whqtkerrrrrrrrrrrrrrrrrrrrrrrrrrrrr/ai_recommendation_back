@@ -58,7 +58,7 @@ public class ToolsService {
                 String pageUrl = categoryUrl + "page/" + page + "/";
                 Document doc = Jsoup.connect(pageUrl).get();
 
-                Element latestPosts = doc.selectFirst("div.latest-posts");
+                Element latestPosts = doc.selectFirst("div[class='latest-posts']");
                 if (latestPosts == null) break;
 
                 Elements posts = latestPosts.select("div[class^=post-item]");
