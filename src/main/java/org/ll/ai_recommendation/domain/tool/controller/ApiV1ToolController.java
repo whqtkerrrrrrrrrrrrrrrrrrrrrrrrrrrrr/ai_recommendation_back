@@ -15,8 +15,11 @@ public class ApiV1ToolController {
 
     @GetMapping("/start")
     public GlobalResponse<Void> startCrawling() {
+        long start = System.currentTimeMillis();
         toolService.saveCategories();
         toolService.saveTools();
+        long end = System.currentTimeMillis();
+        System.out.println("실행 시간: " + (end - start) / 1000.0 + "초");
         return GlobalResponse.success();
     }
 }

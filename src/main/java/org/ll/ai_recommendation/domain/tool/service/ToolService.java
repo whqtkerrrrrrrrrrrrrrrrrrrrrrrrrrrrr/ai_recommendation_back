@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ForkJoinPool;
 
 
 @Service
@@ -94,29 +95,59 @@ public class ToolService {
     public void saveTools() {
         List<SubCategory> subCategories = subCategoryRepository.findAll();
         
-        for (SubCategory subCategory : subCategories) {
-            String categoryUrl = subCategory.getSubCategoryUrl();
-            int page = 1;
-
-            while (true) {
-                try {
-                    String pageUrl = categoryUrl + "page/" + page + "/";
-                    Document doc = Jsoup.connect(pageUrl).get();
-
-                    Element latestPosts = doc.selectFirst("div[class='latest-posts']");
-                    if (latestPosts == null) break;
-
-                    Elements posts = latestPosts.select("div[class^=post-item]");
-                    if (posts.isEmpty()) break;
-
-                    for (Element post : posts) {
-                        processPost(post);
+        // ForkJoinPool을 사용하여 병렬 처리
+        ForkJoinPool customThreadPool = new ForkJoinPool(4);
+        try {
+            customThreadPool.submit(() ->
+                subCategories.parallelStream().forEach(subCategory -> {
+                    try {
+                        processSubCategory(subCategory);
+                    } catch (Exception e) {
+                        log.error("카테고리 처리 중 오류 발생: {} (카테고리: {})", 
+                            e.getMessage(), subCategory.getSubCategoryName());
                     }
-                    page++;
-                } catch (IOException e) {
-                    log.error("페이지 크롤링 중 오류 발생: {} (카테고리: {})", e.getMessage(), subCategory.getSubCategoryName());
-                    break;
+                })
+            ).get();
+        } catch (Exception e) {
+            log.error("병렬 처리 중 오류 발생: {}", e.getMessage());
+        } finally {
+            customThreadPool.shutdown();
+        }
+    }
+
+    @Transactional
+    protected void processSubCategory(SubCategory subCategory) {
+        String categoryUrl = subCategory.getSubCategoryUrl();
+        int page = 1;
+        
+        while (true) {
+            try {
+                String pageUrl = categoryUrl + "page/" + page + "/";
+                Document doc = Jsoup.connect(pageUrl)
+                        .timeout(10000)
+                        .get();
+
+                Element latestPosts = doc.selectFirst("div[class='latest-posts']");
+                if (latestPosts == null) break;
+
+                Elements posts = latestPosts.select("div[class^=post-item]");
+                if (posts.isEmpty()) break;
+
+                for (Element post : posts) {
+                    try {
+                        processPost(post);
+                    } catch (Exception e) {
+                        log.error("포스트 처리 중 오류 발생: {}", e.getMessage());
+                    }
                 }
+                
+                page++;
+                Thread.sleep(1000);
+                
+            } catch (Exception e) {
+                log.error("페이지 크롤링 중 오류 발생: {} (카테고리: {})", 
+                    e.getMessage(), subCategory.getSubCategoryName());
+                break;
             }
         }
     }
@@ -128,7 +159,9 @@ public class ToolService {
 
         String detailUrl = titleElement.attr("href");
         try {
-            Document detailDoc = Jsoup.connect(detailUrl).get();
+            Document detailDoc = Jsoup.connect(detailUrl)
+                    .timeout(10000)
+                    .get();
             String toolName = detailDoc.selectFirst("span[class*=post-title]").text();
             String description = detailDoc.selectFirst("span.desc-text").text();
 
@@ -154,7 +187,8 @@ public class ToolService {
         return savedTool;
     }
 
-    private void processCategories(Document detailDoc, Tool savedTool) {
+    @Transactional
+    protected void processCategories(Document detailDoc, Tool savedTool) {
         Elements categoryElements = detailDoc.select("div.entry-categories a span[data-title]");
         for (Element categoryElement : categoryElements) {
             String categoryName = categoryElement.attr("data-title").trim();
@@ -168,13 +202,10 @@ public class ToolService {
                         .subCategory(subCat)
                         .build();
 
+                toolCategory = toolCategoryRepository.save(toolCategory);
+                
+                // 영속성 컨텍스트 내에서 관계 설정
                 savedTool.getToolCategories().add(toolCategory);
-                if (subCat.getToolCategories() == null) {
-                    subCat.setToolCategories(new ArrayList<>());
-                }
-                subCat.getToolCategories().add(toolCategory);
-
-                toolCategoryRepository.save(toolCategory);
                 
                 log.info("도구-카테고리 연결: {} - {}", savedTool.getToolName(), categoryName);
             }
