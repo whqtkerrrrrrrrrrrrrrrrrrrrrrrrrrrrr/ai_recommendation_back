@@ -5,13 +5,12 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.*;
-import org.ll.ai_recommendation.domain.category.subCategory.entity.SubCategory;
 import org.ll.ai_recommendation.global.baseEntity.BaseEntity;
 
 import java.util.List;
 
 @Entity
-@Table(name = "ai_tools")
+@Table(name = "tool")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -28,5 +27,5 @@ public class Tool extends BaseEntity {
     private String toolLink;
 
     @OneToMany(mappedBy = "tool")
-    private List<SubCategory> subCategories;
+    private List<ToolCategory> toolCategories;
 }
