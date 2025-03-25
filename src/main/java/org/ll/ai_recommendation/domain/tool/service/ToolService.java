@@ -24,7 +24,6 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 @Slf4j
 public class ToolService {
     private final ToolRepository toolsRepository;
@@ -35,6 +34,7 @@ public class ToolService {
     // 크롤링 대상 URL
     private static final String BASE_URL = "https://www.aixploria.com/en/categories-ai/";
 
+    @Transactional
     public void saveCategories() {
         try {
             Document doc = Jsoup.connect(BASE_URL).get();
@@ -90,6 +90,7 @@ public class ToolService {
         }
     }
 
+    @Transactional
     public void saveTools() {
         List<SubCategory> subCategories = subCategoryRepository.findAll();
         
@@ -109,69 +110,73 @@ public class ToolService {
                     if (posts.isEmpty()) break;
 
                     for (Element post : posts) {
-                        Element titleElement = post.selectFirst("span.post-title a.dark-title");
-
-                        if (titleElement != null) {
-                            String detailUrl = titleElement.attr("href");
-
-                            try {
-                                Document detailDoc = Jsoup.connect(detailUrl).get();
-
-                                String toolName = detailDoc.selectFirst("span[class*=post-title]")
-                                        .text();
-
-                                String description = detailDoc.selectFirst("span.desc-text")
-                                        .text();
-
-                                if (!toolsRepository.existsByToolName(toolName)) {
-                                    Tool tool = Tool.builder()
-                                            .toolName(toolName)
-                                            .toolDescription(description)
-                                            .toolLink(detailUrl)
-                                            .toolCategories(new ArrayList<>())
-                                            .build();
-
-                                    Tool savedTool = toolsRepository.save(tool);
-
-                                    Elements categoryElements = detailDoc.select("div.entry-categories a span[data-title]");
-                                    for (Element categoryElement : categoryElements) {
-                                        String categoryName = categoryElement.attr("data-title").trim();
-                                        
-                                        SubCategory subCat = subCategoryRepository.findBySubCategoryName(categoryName)
-                                                .orElse(null);
-
-                                        if (subCat != null) {
-                                            ToolCategory toolCategory = ToolCategory.builder()
-                                                    .tool(savedTool)
-                                                    .subCategory(subCat)
-                                                    .build();
-
-                                            savedTool.getToolCategories().add(toolCategory);
-                                            if (subCat.getToolCategories() == null) {
-                                                subCat.setToolCategories(new ArrayList<>());
-                                            }
-                                            subCat.getToolCategories().add(toolCategory);
-
-                                            toolCategoryRepository.save(toolCategory);
-                                            
-                                            log.info("도구-카테고리 연결: {} - {}", toolName, categoryName);
-                                        }
-                                    }
-                                    
-                                    log.info("저장된 AI 도구: {}", toolName);
-                                }
-
-                            } catch (IOException e) {
-                                log.error("도구 상세 페이지 크롤링 중 오류 발생: {}", e.getMessage());
-                                continue;
-                            }
-                        }
+                        processPost(post);
                     }
                     page++;
                 } catch (IOException e) {
                     log.error("페이지 크롤링 중 오류 발생: {} (카테고리: {})", e.getMessage(), subCategory.getSubCategoryName());
                     break;
                 }
+            }
+        }
+    }
+
+    @Transactional
+    protected void processPost(Element post) {
+        Element titleElement = post.selectFirst("span.post-title a.dark-title");
+        if (titleElement == null) return;
+
+        String detailUrl = titleElement.attr("href");
+        try {
+            Document detailDoc = Jsoup.connect(detailUrl).get();
+            String toolName = detailDoc.selectFirst("span[class*=post-title]").text();
+            String description = detailDoc.selectFirst("span.desc-text").text();
+
+            if (!toolsRepository.existsByToolName(toolName)) {
+                Tool savedTool = saveTool(toolName, description, detailUrl);
+                processCategories(detailDoc, savedTool);
+            }
+        } catch (IOException e) {
+            log.error("도구 상세 페이지 크롤링 중 오류 발생: {}", e.getMessage());
+        }
+    }
+
+    private Tool saveTool(String toolName, String description, String detailUrl) {
+        Tool tool = Tool.builder()
+                .toolName(toolName)
+                .toolDescription(description)
+                .toolLink(detailUrl)
+                .toolCategories(new ArrayList<>())
+                .build();
+
+        Tool savedTool = toolsRepository.save(tool);
+        log.info("저장된 AI 도구: {}", toolName);
+        return savedTool;
+    }
+
+    private void processCategories(Document detailDoc, Tool savedTool) {
+        Elements categoryElements = detailDoc.select("div.entry-categories a span[data-title]");
+        for (Element categoryElement : categoryElements) {
+            String categoryName = categoryElement.attr("data-title").trim();
+            
+            SubCategory subCat = subCategoryRepository.findBySubCategoryName(categoryName)
+                    .orElse(null);
+
+            if (subCat != null) {
+                ToolCategory toolCategory = ToolCategory.builder()
+                        .tool(savedTool)
+                        .subCategory(subCat)
+                        .build();
+
+                savedTool.getToolCategories().add(toolCategory);
+                if (subCat.getToolCategories() == null) {
+                    subCat.setToolCategories(new ArrayList<>());
+                }
+                subCat.getToolCategories().add(toolCategory);
+
+                toolCategoryRepository.save(toolCategory);
+                
+                log.info("도구-카테고리 연결: {} - {}", savedTool.getToolName(), categoryName);
             }
         }
     }
