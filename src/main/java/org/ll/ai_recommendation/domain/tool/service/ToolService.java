@@ -18,8 +18,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ForkJoinPool;
 
 
@@ -162,11 +166,41 @@ public class ToolService {
             Document detailDoc = Jsoup.connect(detailUrl)
                     .timeout(10000)
                     .get();
+                
             String toolName = detailDoc.selectFirst("span[class*=post-title]").text();
             String description = detailDoc.selectFirst("span.desc-text").text();
+            
+            String iconUrl = detailDoc.selectFirst("img.site-icon-singly").attr("src");
+            boolean verified = detailDoc.selectFirst("img.verification-icon.verif-blue") != null;
+            
+            Element rankElement = detailDoc.selectFirst("span.number-rk");
+            Integer categoryRank = rankElement != null ? 
+                Integer.parseInt(rankElement.text().replace("#", "")) : null;
+            
+            Element likesElement = detailDoc.selectFirst("span.numbers-upvote");
+            Integer likesCount = likesElement != null ? 
+                Integer.parseInt(likesElement.text().trim()) : 0;
+            
+            boolean isPaid = detailDoc.selectFirst("span.website-type-Paid-descr") != null;
+            
+            Element ratingElement = detailDoc.selectFirst("div.kksr-legend");
+            Double rating = ratingElement != null ? 
+                Double.parseDouble(ratingElement.text().split("/")[0]) : null;
+            
+            Element viewElement = detailDoc.selectFirst("div.vue-ai");
+            Integer viewCount = viewElement != null ? 
+                Integer.parseInt(viewElement.text().trim()) : 0;
+                
+            Element dateElement = detailDoc.selectFirst("span.post-date");
+            LocalDateTime publishedDate = dateElement != null ? 
+                LocalDate.parse(dateElement.text(), 
+                    DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.ENGLISH))
+                    .atStartOfDay() : null;
 
             if (!toolsRepository.existsByToolName(toolName)) {
-                Tool savedTool = saveTool(toolName, description, detailUrl);
+                Tool savedTool = saveTool(toolName, description, detailUrl, 
+                    iconUrl, verified, categoryRank, likesCount, isPaid, 
+                    rating, viewCount, publishedDate);
                 processCategories(detailDoc, savedTool);
             }
         } catch (IOException e) {
@@ -174,11 +208,22 @@ public class ToolService {
         }
     }
 
-    private Tool saveTool(String toolName, String description, String detailUrl) {
+    private Tool saveTool(String toolName, String description, String detailUrl,
+                         String iconUrl, boolean verified, Integer categoryRank,
+                         Integer likesCount, boolean isPaid, Double rating,
+                         Integer viewCount, LocalDateTime publishedDate) {
         Tool tool = Tool.builder()
                 .toolName(toolName)
                 .toolDescription(description)
                 .toolLink(detailUrl)
+                .iconUrl(iconUrl)
+                .verified(verified)
+                .categoryRank(categoryRank)
+                .likesCount(likesCount)
+                .paid(isPaid)
+                .rating(rating)
+                .viewCount(viewCount)
+                .publishedDate(publishedDate)
                 .toolCategories(new ArrayList<>())
                 .build();
 
