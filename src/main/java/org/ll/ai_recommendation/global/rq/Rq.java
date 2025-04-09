@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.ll.ai_recommendation.domain.member.entity.Member;
 import org.ll.ai_recommendation.domain.member.service.MemberService;
+import org.ll.ai_recommendation.global.config.AppConfig;
 import org.ll.ai_recommendation.global.security.SecurityUser;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
