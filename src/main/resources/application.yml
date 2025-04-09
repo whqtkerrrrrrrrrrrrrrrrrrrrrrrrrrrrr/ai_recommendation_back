@@ -5,6 +5,24 @@ spring:
   profiles:
     active: dev
     include: secret
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            scope:
+              - profile_nickname
+              - profile_image
+              - account_email
+            redirect-uri: "${custom.site.backUrl}/{action}/oauth2/code/{registrationId}"
+            authorization-grant-type: authorization_code
+            client-name: Kakao    # 클라이언트 이름
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me    # 사용자 정보 조회 URI
+            user-name-attribute: id    # 사용자 정보에서 사용자 이름에 해당하는 속성
 logging:
   level:
     root: info
